@@ -68,6 +68,15 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  void resetStats() {
+    setState(() {
+      for (int i = 1; i <= 9; i++) {
+        stats[i] = 0;
+      }
+      currentNumber = null;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -110,6 +119,7 @@ class _HomePageState extends State<HomePage> {
                   MaterialPageRoute(
                     builder: (_) => StatisticsPage(
                       stats: stats,
+                      onReset: resetStats,
                       buttonStyle: buttonStyle,
                     ),
                   ),
@@ -124,16 +134,23 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-class StatisticsPage extends StatelessWidget {
+class StatisticsPage extends StatefulWidget {
   final Map<int, int> stats;
+  final VoidCallback onReset;
   final ButtonStyle buttonStyle;
 
   const StatisticsPage({
     super.key,
     required this.stats,
+    required this.onReset,
     required this.buttonStyle,
   });
 
+  @override
+  State<StatisticsPage> createState() => _StatisticsPageState();
+}
+
+class _StatisticsPageState extends State<StatisticsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -153,7 +170,7 @@ class StatisticsPage extends StatelessWidget {
           children: [
             Expanded(
               child: ListView(
-                children: stats.entries.map((entry) {
+                children: widget.stats.entries.map((entry) {
                   return ListTile(
                     title: Text(
                       "Number ${entry.key}",
@@ -168,7 +185,16 @@ class StatisticsPage extends StatelessWidget {
               ),
             ),
             ElevatedButton(
-              style: buttonStyle,
+              style: widget.buttonStyle,
+              onPressed: () {
+                widget.onReset();
+                setState(() {});
+              },
+              child: const Text("Reset"),
+            ),
+            const SizedBox(height: 10),
+            ElevatedButton(
+              style: widget.buttonStyle,
               onPressed: () => Navigator.pop(context),
               child: const Text("Back to Home"),
             ),
