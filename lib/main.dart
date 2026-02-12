@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 
@@ -32,23 +33,29 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(seedColor: appBarColor),
       ),
-      home: const HomePage(),
+      home: const RandomNumberApp(),
     );
   }
 }
 
-class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+class RandomNumberApp extends StatefulWidget {
+  const RandomNumberApp({super.key});
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  State<RandomNumberApp> createState() => _RandomNumberAppState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _RandomNumberAppState extends State<RandomNumberApp>
+    with SingleTickerProviderStateMixin {
   int? currentNumber;
-  final Random random = Random();
 
   final Map<int, int> stats = {for (int i = 1; i <= 9; i++) i: 0};
+
+  late AnimationController _controller;
+  late Animation<double> _rotationAnimation;
+
+  Timer? _timer;
+  final Random _random = Random();
 
   final ButtonStyle buttonStyle = ElevatedButton.styleFrom(
     backgroundColor: buttonColor,
@@ -61,20 +68,61 @@ class _HomePageState extends State<HomePage> {
     textStyle: const TextStyle(fontSize: 18),
   );
 
+  @override
+  void initState() {
+    super.initState();
+
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    );
+
+    _rotationAnimation =
+        Tween<double>(begin: 0, end: 4).animate(_controller);
+
+    _controller.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        _timer?.cancel();
+        if (currentNumber != null) {
+          setState(() {
+            stats[currentNumber!] =
+                stats[currentNumber!]! + 1;
+          });
+        }
+      }
+    });
+  }
+
   void generateNumber() {
-    setState(() {
-      currentNumber = random.nextInt(9) + 1;
-      stats[currentNumber!] = stats[currentNumber!]! + 1;
+    _timer?.cancel();
+    _controller.reset();
+    _controller.forward();
+
+    _timer = Timer.periodic(const Duration(milliseconds: 40), (timer) {
+      setState(() {
+        currentNumber = _random.nextInt(9) + 1;
+      });
     });
   }
 
   void resetStats() {
+    _timer?.cancel();
+    _controller.stop();
+    _controller.reset();
+
     setState(() {
       for (int i = 1; i <= 9; i++) {
         stats[i] = 0;
       }
       currentNumber = null;
     });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _timer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -99,9 +147,12 @@ class _HomePageState extends State<HomePage> {
               child: Center(
                 child: currentNumber == null
                     ? const SizedBox()
-                    : Text(
-                        currentNumber.toString(),
-                        style: numberTextStyle,
+                    : RotationTransition(
+                        turns: _rotationAnimation,
+                        child: Text(
+                          currentNumber.toString(),
+                          style: numberTextStyle,
+                        ),
                       ),
               ),
             ),
